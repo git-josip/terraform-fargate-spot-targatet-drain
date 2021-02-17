@@ -6,8 +6,6 @@ Terraform scripts for deploying lambda for de-registering load balancer targets 
   Lambda for de-registering tasks: https://gist.github.com/jicowan/ad5e13d12577b41a22f83ed91a3e61bf
 - EventBridge rule is created based on: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html#fargate-capacity-providers-termination
 
-## How to
-
 ### Overview
 
 All commands are defined in `MakeFile`.
