@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -78,15 +79,29 @@ type ECSEvent struct {
 }
 
 func main() {
+	log.Println("Main started.")
 	lambda.Start(HandleRequest)
+	log.Println("Main Finished.")
 }
 
 func HandleRequest(e ECSEvent) error {
+	log.Println("HandleRequest started. Parsing event.")
+	eventAsJson, eventAsJsonError := json.Marshal(e)
+	if eventAsJsonError != nil {
+		log.Println("Parsing event JSON occurred")
+		log.Println(eventAsJsonError)
+	} else {
+		log.Println("Event JSON parsed")
+		log.Println(string(eventAsJson))
+	}
+
 	var privateIPv4Address string
 	var subnetId []string
 	var service []string
 	for _, attachment := range e.Detail.Attachments {
 		if e.Detail.StopCode == "TerminationNotice" && strings.Contains(e.Detail.Group, "service:") {
+			log.Println("TerminationNotice Event occurred.")
+
 			for _, detail := range attachment.Details {
 				if detail.Name == "privateIPv4Address" {
 					privateIPv4Address = detail.Value
@@ -124,6 +139,11 @@ func getAvailabilityZone(subnetId []string) *string {
 }
 
 func deregisterTask(ip *string, az *string, tg *string, port *int32) {
+	log.Println("###### Deregister task started.")
+	log.Printf("###### ******* ip '%v'", aws.ToString(ip))
+	log.Printf("###### ******* az '%v'", aws.ToString(az))
+	log.Printf("###### ******* tg '%v'", aws.ToString(tg))
+
 	ctx := context.Background()
 	config, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
@@ -146,6 +166,8 @@ func deregisterTask(ip *string, az *string, tg *string, port *int32) {
 	} else {
 		log.Printf("The target %v was deregistered\n", aws.ToString(ip))
 	}
+
+	log.Println("###### Deregister task Finished.")
 }
 
 func getTargetGroup(svc []string, cluster string) *string {
