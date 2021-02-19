@@ -99,6 +99,10 @@ func HandleRequest(e ECSEvent) error {
 	var subnetId []string
 	var service []string
 	for _, attachment := range e.Detail.Attachments {
+		if attachment.Type != "eni" || attachment.Details == nil || len(attachment.Details) == 0  {
+			break
+		}
+
 		if e.Detail.StopCode == "TerminationNotice" && strings.Contains(e.Detail.Group, "service:") {
 			log.Println("TerminationNotice Event occurred.")
 
@@ -112,9 +116,13 @@ func HandleRequest(e ECSEvent) error {
 			}
 			cluster := e.Detail.ClusterArn
 			service = append(service, strings.Split(e.Detail.Group, ":")[1])
-			targetGroup := getTargetGroup(service, cluster)
+			targetGroups := getTargetGroups(service, cluster)
 			az := getAvailabilityZone(subnetId)
-			deregisterTask(&privateIPv4Address, az, targetGroup, nil)
+
+			for i, tg := range targetGroups {
+				log.Printf("_____ %d deregistering task from target group: %v\n", i, aws.ToString(tg))
+				deregisterTask(&privateIPv4Address, az, tg, nil)
+			}
 		}
 	}
 	return nil
@@ -170,7 +178,7 @@ func deregisterTask(ip *string, az *string, tg *string, port *int32) {
 	log.Println("###### Deregister task Finished.")
 }
 
-func getTargetGroup(svc []string, cluster string) *string {
+func getTargetGroups(svc []string, cluster string) []*string {
 	log.Printf("The service name is: %v", svc[0])
 	log.Printf("The clusterArn is: %v\n", cluster)
 	ctx := context.Background()
@@ -178,7 +186,10 @@ func getTargetGroup(svc []string, cluster string) *string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	var tg *string
+
+	targetGroups := make(map[*string]bool)
+	var targetGroupsResult []*string
+
 	client := ecs.NewFromConfig(config)
 	log.Printf("Finding target group\n")
 	output, err := client.DescribeServices(ctx, &ecs.DescribeServicesInput{
@@ -188,11 +199,17 @@ func getTargetGroup(svc []string, cluster string) *string {
 	if err != nil {
 		log.Println(err)
 	}
+
 	for _, service := range output.Services {
 		for _, lb := range service.LoadBalancers {
-			tg = lb.TargetGroupArn
+			targetGroups[lb.TargetGroupArn] = true
 		}
 	}
-	log.Printf("The target group is: %v\n", aws.ToString(tg))
-	return tg
+
+	for es := range targetGroups {
+		targetGroupsResult = append(targetGroupsResult, es)
+	}
+
+	log.Printf("Extracted Target Groups Are: %v\n", aws.ToStringSlice(targetGroupsResult))
+	return targetGroupsResult
 }
