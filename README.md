@@ -1,7 +1,7 @@
 # terraform-fargate-spot-targatet-drain
 
 Because of this issue https://github.com/aws/containers-roadmap/issues/1565 
-lamnbda is updated to monitor stoppedReason as well as stopCode might not come. 
+lambda is updated to monitor stoppedReason as well as stopCode might not come. 
 
 Terraform scripts for deploying lambda for de-registering load balancer targets on FargateSpot interruption.
 
