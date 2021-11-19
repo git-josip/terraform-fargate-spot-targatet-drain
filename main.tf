@@ -81,7 +81,8 @@ resource "aws_cloudwatch_event_rule" "fargate-spot-rule" {
   "source": ["aws.ecs"],
   "detail-type": ["ECS Task State Change"],
   "detail": {
-    "clusterArn": ["*"]
+    "clusterArn": ["*"],
+    "stoppedReason": ["Your Spot Task was interrupted."]
   }
 }
 EOF
