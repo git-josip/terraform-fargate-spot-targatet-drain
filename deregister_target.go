@@ -103,7 +103,7 @@ func HandleRequest(e ECSEvent) error {
 			break
 		}
 
-		if (e.Detail.StopCode == "TerminationNotice" || e.Detail.StoppedReason == "Your Spot Task was interrupted.") && strings.Contains(e.Detail.Group, "service:") {
+		if (e.Detail.StopCode == "TerminationNotice" || e.Detail.StoppedReason == "Your Spot Task was interrupted." || e.Detail.StoppedReason == "Task stopped by user") && strings.Contains(e.Detail.Group, "service:") {
 			log.Println("TerminationNotice Event occurred.")
 
 			for _, detail := range attachment.Details {
